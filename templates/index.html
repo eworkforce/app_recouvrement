@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App Recouvrement</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+    <div class="wrapper">
+        <!-- Sidebar -->
+        <nav id="sidebar">
+            <div class="sidebar-header">
+                <h3>App Recouvrement</h3>
+            </div>
+
+            <ul class="list-unstyled components">
+                <li>
+                    <a href="#" class="nav-link active" data-section="dashboard">
+                        <i class="bi bi-graph-up"></i> Dashboard
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="nav-link" data-section="clients">
+                        <i class="bi bi-people"></i> Clients
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="nav-link" data-section="factures">
+                        <i class="bi bi-receipt"></i> Factures
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="nav-link" data-section="exports">
+                        <i class="bi bi-download"></i> Exports
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#importModal">
+                        <i class="bi bi-upload"></i> Importer
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Page Content -->
+        <div id="content">
+            <!-- Modal d'importation -->
+            <div class="modal fade" id="importModal" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Importer des données</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <ul class="nav nav-tabs mb-3">
+                                <li class="nav-item">
+                                    <a class="nav-link active" data-bs-toggle="tab" href="#importClients">Clients</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" data-bs-toggle="tab" href="#importFactures">Factures</a>
+                                </li>
+                            </ul>
+                            
+                            <div class="tab-content">
+                                <div class="tab-pane fade show active" id="importClients">
+                                    <div class="alert alert-info">
+                                        <h6>Format attendu du fichier CSV :</h6>
+                                        <p class="mb-0">
+                                            <code>nom,email,telephone</code><br>
+                                            Exemple : <code>John Doe,john@example.com,0123456789</code>
+                                        </p>
+                                    </div>
+                                    <form id="importClientsForm" class="import-form" data-type="clients">
+                                        <div class="mb-3">
+                                            <label class="form-label">Fichier CSV</label>
+                                            <input type="file" class="form-control" accept=".csv" required>
+                                        </div>
+                                        <button type="submit" class="btn btn-success">
+                                            <i class="bi bi-upload"></i> Importer les clients
+                                        </button>
+                                    </form>
+                                </div>
+                                
+                                <div class="tab-pane fade" id="importFactures">
+                                    <div class="alert alert-info">
+                                        <h6>Format attendu du fichier CSV :</h6>
+                                        <p class="mb-0">
+                                            <code>numero,client_id,montant,date_emission,date_echeance</code><br>
+                                            Exemple : <code>FAC2024-001,1,1500.50,2024-01-15,2024-02-15</code>
+                                        </p>
+                                    </div>
+                                    <form id="importFacturesForm" class="import-form" data-type="factures">
+                                        <div class="mb-3">
+                                            <label class="form-label">Fichier CSV</label>
+                                            <input type="file" class="form-control" accept=".csv" required>
+                                        </div>
+                                        <button type="submit" class="btn btn-success">
+                                            <i class="bi bi-upload"></i> Importer les factures
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                            
+                            <div id="importPreview" class="mt-4" style="display: none;">
+                                <h6>Aperçu des données importées :</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead id="previewHeader"></thead>
+                                        <tbody id="previewBody"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <div id="importErrors" class="alert alert-danger mt-3" style="display: none;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Section -->
+            <section id="dashboard" class="active-section">
+                <div class="container-fluid">
+                    <h2 class="mb-4">Tableau de Bord</h2>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card dashboard-card">
+                                <div class="card-body">
+                                    <div id="statusChart"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card dashboard-card">
+                                <div class="card-body">
+                                    <div id="evolutionChart"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Clients Section -->
+            <section id="clients" class="section">
+                <div class="container-fluid">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2>Gestion des Clients</h2>
+                        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addClientModal">
+                            <i class="bi bi-plus-circle"></i> Nouveau Client
+                        </button>
+                    </div>
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Nom</th>
+                                            <th>Email</th>
+                                            <th>Téléphone</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="clientsTableBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Factures Section -->
+            <section id="factures" class="section">
+                <div class="container-fluid">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2>Gestion des Factures</h2>
+                        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addFactureModal">
+                            <i class="bi bi-plus-circle"></i> Nouvelle Facture
+                        </button>
+                    </div>
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Numéro</th>
+                                            <th>Client</th>
+                                            <th>Montant</th>
+                                            <th>Date d'émission</th>
+                                            <th>Date d'échéance</th>
+                                            <th>Statut</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="facturesTableBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Exports Section -->
+            <section id="exports" class="section">
+                <div class="container-fluid">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2>Exports Automatiques</h2>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title">Export Quotidien</h5>
+                                    <form class="export-config-form" data-type="daily">
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" id="dailyEnabled">
+                                            <label class="form-check-label" for="dailyEnabled">
+                                                Activer l'export quotidien
+                                            </label>
+                                        </div>
+                                        <div class="form-check mb-2">
+                                            </label>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <div class="mb-2">
+                                                    <label class="form-label">Heure</label>
+                                                    <select class="form-select" name="hour">
+                                                        {% for h in range(24) %}
+                                                        <option value="{{ h }}">{{ '%02d'|format(h) }}h</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="mb-2">
+                                                    <label class="form-label">Minute</label>
+                                                    <select class="form-select" name="minute">
+                                                        {% for m in range(0, 60, 5) %}
+                                                        <option value="{{ m }}">{{ '%02d'|format(m) }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button type="submit" class="btn btn-success btn-sm mt-2">
+                                            <i class="bi bi-save"></i> Enregistrer
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title">Export Hebdomadaire</h5>
+                                    <form class="export-config-form" data-type="weekly">
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" id="weeklyEnabled">
+                                            <label class="form-check-label" for="weeklyEnabled">
+                                                Activer l'export hebdomadaire
+                                            </label>
+                                        </div>
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" id="weeklyNotify" checked>
+                                            <label class="form-check-label" for="weeklyNotify">
+                                                Notification par email
+                                            </label>
+                                        </div>
+                                        <div class="mb-2">
+                                            <label class="form-label">Jour</label>
+                                            <select class="form-select" name="day">
+                                                <option value="mon">Lundi</option>
+                                                <option value="tue">Mardi</option>
+                                                <option value="wed">Mercredi</option>
+                                                <option value="thu">Jeudi</option>
+                                                <option value="fri">Vendredi</option>
+                                                <option value="sat">Samedi</option>
+                                                <option value="sun">Dimanche</option>
+                                            </select>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <div class="mb-2">
+                                                    <label class="form-label">Heure</label>
+                                                    <select class="form-select" name="hour">
+                                                        {% for h in range(24) %}
+                                                        <option value="{{ h }}">{{ '%02d'|format(h) }}h</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="mb-2">
+                                                    <label class="form-label">Minute</label>
+                                                    <select class="form-select" name="minute">
+                                                        {% for m in range(0, 60, 5) %}
+                                                        <option value="{{ m }}">{{ '%02d'|format(m) }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button type="submit" class="btn btn-success btn-sm mt-2">
+                                            <i class="bi bi-save"></i> Enregistrer
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title">Export Mensuel</h5>
+                                    <form class="export-config-form" data-type="monthly">
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" id="monthlyEnabled">
+                                            <label class="form-check-label" for="monthlyEnabled">
+                                                Activer l'export mensuel
+                                            </label>
+                                        </div>
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" id="monthlyNotify" checked>
+                                            <label class="form-check-label" for="monthlyNotify">
+                                                Notification par email
+                                            </label>
+                                        </div>
+                                        <div class="mb-2">
+                                            <label class="form-label">Jour du mois</label>
+                                            <select class="form-select" name="day">
+                                                <option value="last">Dernier jour</option>
+                                                {% for d in range(1, 32) %}
+                                                <option value="{{ d }}">{{ d }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <div class="mb-2">
+                                                    <label class="form-label">Heure</label>
+                                                    <select class="form-select" name="hour">
+                                                        {% for h in range(24) %}
+                                                        <option value="{{ h }}">{{ '%02d'|format(h) }}h</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="mb-2">
+                                                    <label class="form-label">Minute</label>
+                                                    <select class="form-select" name="minute">
+                                                        {% for m in range(0, 60, 5) %}
+                                                        <option value="{{ m }}">{{ '%02d'|format(m) }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button type="submit" class="btn btn-success btn-sm mt-2">
+                                            <i class="bi bi-save"></i> Enregistrer
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">Derniers Exports</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Nom du fichier</th>
+                                            <th>Date</th>
+                                            <th>Taille</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="exportsTableBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <div class="card mt-4">
+                <div class="card-header">
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Client -->
+    <div class="modal fade" id="addClientModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nouveau Client</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addClientForm">
+                        <div class="mb-3">
+                            <label for="nom" class="form-label">Nom</label>
+                            <input type="text" class="form-control" id="nom" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="telephone" class="form-label">Téléphone</label>
+                            <input type="tel" class="form-control" id="telephone" required>
+                        </div>
+                        <button type="submit" class="btn btn-success">Ajouter</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Facture -->
+    <div class="modal fade" id="factureModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nouvelle Facture</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="factureForm">
+                        <div class="mb-3">
+                            <label for="client" class="form-label">Client</label>
+                            <select class="form-select" id="client" required>
+                                <option value="">Sélectionner un client</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="numero" class="form-label">Numéro de facture</label>
+                            <input type="text" class="form-control" id="numero" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="montant" class="form-label">Montant</label>
+                            <input type="number" class="form-control" id="montant" step="0.01" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="date_emission" class="form-label">Date d'émission</label>
+                            <input type="date" class="form-control" id="date_emission" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="date_echeance" class="form-label">Date d'échéance</label>
+                            <input type="date" class="form-control" id="date_echeance" required>
+                        </div>
+                        <button type="submit" class="btn btn-success">Ajouter</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Données des graphiques depuis Flask
+        const graphData = {{ graphJSON | tojson | safe if graphJSON else 'null' }};
+    </script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

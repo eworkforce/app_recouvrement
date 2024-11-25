@@ -1,0 +1,179 @@
+:root {
+    --primary-color: #2E7D32;
+    --secondary-color: #4CAF50;
+    --background-color: #f8f9fa;
+    --text-color: #333;
+    --sidebar-width: 250px;
+}
+
+body {
+    background-color: var(--background-color);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.wrapper {
+    display: flex;
+    width: 100%;
+}
+
+#sidebar {
+    width: var(--sidebar-width);
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    z-index: 999;
+    background: var(--primary-color);
+    color: #fff;
+    transition: all 0.3s;
+}
+
+#sidebar .sidebar-header {
+    padding: 20px;
+    background: var(--secondary-color);
+}
+
+#sidebar ul.components {
+    padding: 20px 0;
+}
+
+#sidebar ul li a {
+    padding: 10px 20px;
+    font-size: 1.1em;
+    display: block;
+    color: #fff;
+    text-decoration: none;
+    transition: all 0.3s;
+}
+
+#sidebar ul li a:hover {
+    background: var(--secondary-color);
+}
+
+#sidebar ul li.active > a {
+    background: var(--secondary-color);
+}
+
+#content {
+    width: calc(100% - var(--sidebar-width));
+    padding: 20px;
+    min-height: 100vh;
+    transition: all 0.3s;
+    position: absolute;
+    top: 0;
+    right: 0;
+    overflow-y: auto;
+}
+
+.card {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: none;
+    margin-bottom: 1.5rem;
+    border-radius: 10px;
+}
+
+.card-header {
+    background-color: #fff;
+    border-bottom: 1px solid rgba(0,0,0,.125);
+    padding: 1rem;
+}
+
+.dashboard-card {
+    height: 400px;
+    margin-bottom: 30px;
+}
+
+.btn-success {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-success:hover {
+    background-color: var(--secondary-color);
+    border-color: var(--secondary-color);
+}
+
+.table th {
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.form-label {
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.section {
+    display: none;
+    width: 100%;
+    position: absolute;
+    left: 0;
+    padding: 20px;
+}
+
+.active-section {
+    display: block;
+    position: relative;
+}
+
+#dashboard, #clients, #factures, #exports {
+    width: 100%;
+    padding: 20px;
+}
+
+.container-fluid {
+    padding: 0;
+}
+
+/* Modal styling */
+.modal-content {
+    border-radius: 10px;
+    border: none;
+}
+
+.modal-header {
+    background-color: var(--primary-color);
+    color: white;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+}
+
+.modal-header .btn-close {
+    color: white;
+}
+
+/* Icons styling */
+.bi {
+    margin-right: 8px;
+}
+
+/* Notification styling */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    min-width: 300px;
+    padding: 15px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Badge styling */
+.badge {
+    padding: 8px 12px;
+    border-radius: 20px;
+    font-weight: 500;
+}

@@ -1,0 +1,22 @@
+{
+    "daily": {
+        "enabled": true,
+        "hour": 23,
+        "minute": 0,
+        "notify": true
+    },
+    "weekly": {
+        "enabled": true,
+        "day": "sun",
+        "hour": 23,
+        "minute": 30,
+        "notify": true
+    },
+    "monthly": {
+        "enabled": true,
+        "day": "last",
+        "hour": 23,
+        "minute": 45,
+        "notify": true
+    }
+}
