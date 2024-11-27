@@ -1,0 +1,11 @@
+**/.*
+**/__pycache__
+**/*.pyc
+data/
+exports/
+tests/
+venv/
+.git/
+.gitignore
+README.md
+VERSION.md
