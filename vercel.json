@@ -6,17 +6,27 @@
             "use": "@vercel/python",
             "config": {
                 "runtime": "python3.9",
-                "maxLambdaSize": "15mb"
+                "maxLambdaSize": "10mb",
+                "includedFiles": [
+                    "templates/**",
+                    "static/**",
+                    "api/**"
+                ]
             }
         }
     ],
     "routes": [
+        {
+            "src": "/static/(.*)",
+            "dest": "/static/$1"
+        },
         {
             "src": "/(.*)",
             "dest": "api/index.py"
         }
     ],
     "env": {
-        "PYTHONPATH": "."
+        "PYTHONPATH": ".",
+        "VERCEL_DEPLOYMENT": "1"
     }
 }

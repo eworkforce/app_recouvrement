@@ -1,7 +1,6 @@
-**/.*
-**/__pycache__
-**/*.pyc
-.pytest_cache/
+*.pyc
+__pycache__
+.pytest_cache
 tests/
 *.test.js
 *.spec.js
@@ -17,7 +16,3 @@ exports/
 *.csv
 *.xlsx
 *.pdf
-venv/
-.vercel/
-__pycache__/
-*.py[cod]
