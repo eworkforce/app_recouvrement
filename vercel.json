@@ -2,27 +2,14 @@
     "version": 2,
     "builds": [
         {
-            "src": "api/index.py",
-            "use": "@vercel/python",
-            "config": {
-                "runtime": "python3.9",
-                "maxLambdaSize": "10mb",
-                "includedFiles": [
-                    "templates/**",
-                    "static/**",
-                    "api/**"
-                ]
-            }
+            "src": "Dockerfile",
+            "use": "@vercel/docker"
         }
     ],
     "routes": [
         {
-            "src": "/static/(.*)",
-            "dest": "/static/$1"
-        },
-        {
             "src": "/(.*)",
-            "dest": "api/index.py"
+            "dest": "/"
         }
     ],
     "env": {
