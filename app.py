@@ -460,9 +460,9 @@ if __name__ == '__main__':
     # Charger la configuration initiale des exports
     config = load_export_config()
     if config:
+        scheduler.start()
         reschedule_exports()
     
-    # Démarrer le planificateur
-    scheduler.start()
-    
-    app.run(debug=True)
+    # Récupérer le port depuis les variables d'environnement ou utiliser 5000 par défaut
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
