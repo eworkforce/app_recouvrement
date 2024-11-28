@@ -126,18 +126,68 @@
             <section id="dashboard" class="active-section">
                 <div class="container-fluid">
                     <h2 class="mb-4">Tableau de Bord</h2>
-                    <div class="row">
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card text-white bg-primary mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">Total Facturé</h5>
+                                    <p class="card-text">{{ stats.montant_total }} CFA</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-white bg-warning mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">Montant Impayé</h5>
+                                    <p class="card-text">{{ stats.montant_impaye }} CFA</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-white bg-danger mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">Montant en Retard</h5>
+                                    <p class="card-text">{{ stats.montant_retard }} CFA</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-white bg-success mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">Taux de Recouvrement</h5>
+                                    <p class="card-text">{{ stats.taux_recouvrement }}%</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mb-4">
                         <div class="col-md-6">
-                            <div class="card dashboard-card">
+                            <div class="card h-100">
                                 <div class="card-body">
                                     <div id="statusChart"></div>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <div class="card dashboard-card">
+                            <div class="card h-100">
                                 <div class="card-body">
                                     <div id="evolutionChart"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <div id="topClientsChart"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <div id="delaisChart"></div>
                                 </div>
                             </div>
                         </div>
@@ -164,6 +214,7 @@
                                             <th>Nom</th>
                                             <th>Email</th>
                                             <th>Téléphone</th>
+                                            <th>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody id="clientsTableBody"></tbody>
@@ -179,7 +230,7 @@
                 <div class="container-fluid">
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <h2>Gestion des Factures</h2>
-                        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addFactureModal">
+                        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#factureModal">
                             <i class="bi bi-plus-circle"></i> Nouvelle Facture
                         </button>
                     </div>
@@ -195,6 +246,7 @@
                                             <th>Date d'émission</th>
                                             <th>Date d'échéance</th>
                                             <th>Statut</th>
+                                            <th>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody id="facturesTableBody"></tbody>
@@ -460,6 +512,16 @@
                         <div class="mb-3">
                             <label for="date_echeance" class="form-label">Date d'échéance</label>
                             <input type="date" class="form-control" id="date_echeance" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="statut" class="form-label">Statut</label>
+                            <select class="form-select" id="statut" required>
+                                <option value="">Sélectionner un statut</option>
+                                <option value="En attente">En attente</option>
+                                <option value="Payée">Payée</option>
+                                <option value="En retard">En retard</option>
+                                <option value="Annulée">Annulée</option>
+                            </select>
                         </div>
                         <button type="submit" class="btn btn-success">Ajouter</button>
                     </form>

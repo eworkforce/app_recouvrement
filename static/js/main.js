@@ -3,24 +3,64 @@ document.addEventListener('DOMContentLoaded', function() {
     if (graphData) {
         Plotly.newPlot('statusChart', JSON.parse(graphData.status));
         Plotly.newPlot('evolutionChart', JSON.parse(graphData.evolution));
+        Plotly.newPlot('topClientsChart', JSON.parse(graphData.top_clients));
+        Plotly.newPlot('delaisChart', JSON.parse(graphData.delais));
+
+        // Rendre les graphiques responsifs
+        window.addEventListener('resize', function() {
+            Plotly.Plots.resize('statusChart');
+            Plotly.Plots.resize('evolutionChart');
+            Plotly.Plots.resize('topClientsChart');
+            Plotly.Plots.resize('delaisChart');
+        });
     }
 
     function loadClients() {
         fetch('/clients')
             .then(response => response.json())
             .then(clients => {
+                // Mise à jour du tableau des clients
                 const tbody = document.getElementById('clientsTableBody');
-                tbody.innerHTML = '';
-                clients.forEach(client => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td>${client.id}</td>
-                        <td>${client.nom}</td>
-                        <td>${client.email}</td>
-                        <td>${client.telephone}</td>
-                    `;
-                    tbody.appendChild(tr);
-                });
+                if (tbody) {
+                    tbody.innerHTML = '';
+                    clients.forEach(client => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${client.id}</td>
+                            <td>${client.nom}</td>
+                            <td>${client.email}</td>
+                            <td>${client.telephone}</td>
+                            <td>
+                                <button class="btn btn-danger btn-sm delete-client" data-id="${client.id}">
+                                    <i class="bi bi-trash"></i> Supprimer
+                                </button>
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+
+                    // Ajouter les gestionnaires d'événements pour les boutons de suppression
+                    tbody.querySelectorAll('.delete-client').forEach(button => {
+                        button.addEventListener('click', function() {
+                            const clientId = this.getAttribute('data-id');
+                            if (confirm('Êtes-vous sûr de vouloir supprimer ce client ?')) {
+                                deleteClient(clientId);
+                            }
+                        });
+                    });
+                }
+
+                // Mise à jour du select dans le formulaire de facture
+                const clientSelect = document.getElementById('client');
+                if (clientSelect) {
+                    clientSelect.innerHTML = '<option value="">Sélectionner un client</option>';
+                    clients.forEach(client => {
+                        const option = document.createElement('option');
+                        option.value = client.id;
+                        option.textContent = client.nom;
+                        clientSelect.appendChild(option);
+                    });
+                }
             })
             .catch(error => console.error('Erreur:', error));
     }
@@ -28,35 +68,90 @@ document.addEventListener('DOMContentLoaded', function() {
     function loadFactures() {
         fetch('/factures')
             .then(response => response.json())
-            .then(factures => {
+            .then(data => {
                 const tbody = document.getElementById('facturesTableBody');
                 tbody.innerHTML = '';
-                factures.forEach(facture => {
+                data.forEach(facture => {
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
                         <td>${facture.numero}</td>
                         <td>${facture.client_nom}</td>
-                        <td>${facture.montant.toLocaleString('fr-FR', {style: 'currency', currency: 'EUR'})}</td>
+                        <td>${formatMontant(facture.montant)}</td>
                         <td>${formatDate(facture.date_emission)}</td>
                         <td>${formatDate(facture.date_echeance)}</td>
                         <td>
                             <div class="dropdown">
-                                <button class="btn btn-sm dropdown-toggle badge bg-${getStatusColor(facture.statut)}" 
-                                        type="button" data-bs-toggle="dropdown">
+                                <button class="btn btn-sm dropdown-toggle badge" 
+                                    style="background-color: ${getStatusColor(facture.statut)}"
+                                    type="button" data-bs-toggle="dropdown">
                                     ${facture.statut}
                                 </button>
                                 <ul class="dropdown-menu">
                                     <li><a class="dropdown-item" href="#" onclick="updateFactureStatus(${facture.id}, 'En attente')">En attente</a></li>
                                     <li><a class="dropdown-item" href="#" onclick="updateFactureStatus(${facture.id}, 'Payée')">Payée</a></li>
                                     <li><a class="dropdown-item" href="#" onclick="updateFactureStatus(${facture.id}, 'En retard')">En retard</a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="updateFactureStatus(${facture.id}, 'Annulée')">Annulée</a></li>
                                 </ul>
                             </div>
+                        </td>
+                        <td>
+                            <button class="btn btn-danger btn-sm delete-facture" data-id="${facture.id}">
+                                <i class="bi bi-trash"></i> Supprimer
+                            </button>
                         </td>
                     `;
                     tbody.appendChild(tr);
                 });
+
+                // Ajouter les gestionnaires d'événements pour les boutons de suppression
+                tbody.querySelectorAll('.delete-facture').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const factureId = this.getAttribute('data-id');
+                        if (confirm('Êtes-vous sûr de vouloir supprimer cette facture ?')) {
+                            deleteFacture(factureId);
+                        }
+                    });
+                });
             })
             .catch(error => console.error('Erreur:', error));
+    }
+
+    function deleteClient(clientId) {
+        fetch(`/clients/${clientId}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('Client supprimé avec succès');
+                loadClients();
+            } else {
+                showNotification(data.message || 'Erreur lors de la suppression du client', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            showNotification('Erreur lors de la suppression du client', 'error');
+        });
+    }
+
+    function deleteFacture(factureId) {
+        fetch(`/factures/${factureId}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('Facture supprimée avec succès');
+                loadFactures();
+            } else {
+                showNotification(data.message || 'Erreur lors de la suppression de la facture', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            showNotification('Erreur lors de la suppression de la facture', 'error');
+        });
     }
 
     // Navigation
@@ -123,45 +218,47 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Gestionnaire pour le formulaire facture
-    document.getElementById('factureForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        const factureData = {
-            client_id: document.getElementById('client').value,
-            numero: document.getElementById('numero').value,
-            montant: parseFloat(document.getElementById('montant').value),
-            date_emission: document.getElementById('date_emission').value,
-            date_echeance: document.getElementById('date_echeance').value
-        };
+    // Gestionnaire pour le formulaire de facture
+    const factureForm = document.getElementById('factureForm');
+    if (factureForm) {
+        factureForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                client_id: document.getElementById('client').value,
+                numero: document.getElementById('numero').value,
+                montant: document.getElementById('montant').value,
+                date_emission: document.getElementById('date_emission').value,
+                date_echeance: document.getElementById('date_echeance').value,
+                statut: document.getElementById('statut').value
+            };
 
-        fetch('/factures', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(factureData)
-        })
-        .then(response => response.json())
-        .then(data => {
-            // Fermer le modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('factureModal'));
-            modal.hide();
-            
-            // Recharger les données
-            loadFactures();
-            document.getElementById('factureForm').reset();
-            
-            // Recharger les graphiques
-            window.location.reload();
-            
-            // Notification
-            showNotification('Facture ajoutée avec succès');
-        })
-        .catch(error => {
-            console.error('Erreur:', error);
-            showNotification('Erreur lors de l\'ajout de la facture', 'error');
+            fetch('/factures', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('factureModal'));
+                    modal.hide();
+                    showNotification('Facture ajoutée avec succès');
+                    loadFactures();
+                    // Réinitialiser le formulaire
+                    factureForm.reset();
+                } else {
+                    showNotification(data.message || 'Erreur lors de l\'ajout de la facture', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                showNotification('Erreur lors de l\'ajout de la facture', 'error');
+            });
         });
-    });
+    }
 
     // Gestionnaire pour le formulaire de filtres
     document.getElementById('filterForm').addEventListener('submit', function(e) {
@@ -325,6 +422,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     loadExportConfig();
 
+    // Gestion du modal de facture
+    const factureModal = document.getElementById('factureModal');
+    if (factureModal) {
+        factureModal.addEventListener('show.bs.modal', function (event) {
+            loadClients(); // Recharger la liste des clients à l'ouverture du modal
+        });
+    }
+
     function updateFactureStatus(factureId, newStatus) {
         fetch(`/factures/${factureId}/status`, {
             method: 'PUT',
@@ -335,8 +440,12 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(response => response.json())
         .then(data => {
-            showNotification('Statut mis à jour avec succès');
-            window.location.reload();
+            if (data.success) {
+                showNotification('Statut mis à jour avec succès');
+                loadFactures();  // Recharger uniquement les factures au lieu de toute la page
+            } else {
+                showNotification(data.message || 'Erreur lors de la mise à jour du statut', 'error');
+            }
         })
         .catch(error => {
             console.error('Erreur:', error);
@@ -349,16 +458,22 @@ document.addEventListener('DOMContentLoaded', function() {
         return date.toLocaleDateString('fr-FR');
     }
 
+    function formatMontant(montant) {
+        return new Intl.NumberFormat('fr-FR').format(montant) + ' CFA';
+    }
+
     function getStatusColor(status) {
         switch(status) {
             case 'Payée':
-                return 'success';
+                return '#198754';  // vert
             case 'En attente':
-                return 'warning';
+                return '#ffc107';  // jaune
             case 'En retard':
-                return 'danger';
+                return '#dc3545';  // rouge
+            case 'Annulée':
+                return '#6c757d';  // gris
             default:
-                return 'secondary';
+                return '#6c757d';  // gris par défaut
         }
     }
 

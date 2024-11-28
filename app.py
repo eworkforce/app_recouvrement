@@ -25,15 +25,22 @@ def init_csv():
 
 init_csv()
 
+def format_montant(montant):
+    """Formate un montant en format CFA"""
+    return f"{int(montant):,} CFA".replace(",", " ")
+
+@app.template_filter('format_cfa')
+def format_cfa(montant):
+    return format_montant(montant)
+
 def calculate_statistics(factures_df):
     stats = {
         'total_factures': len(factures_df),
-        'montant_total': factures_df['montant'].sum(),
-        'montant_impaye': factures_df[factures_df['statut'].isin(['En attente', 'En retard'])]['montant'].sum(),
+        'montant_total': format_montant(factures_df['montant'].sum()),
+        'montant_impaye': format_montant(factures_df[factures_df['statut'].isin(['En attente', 'En retard'])]['montant'].sum()),
         'nb_retard': len(factures_df[factures_df['statut'] == 'En retard']),
-        'montant_retard': factures_df[factures_df['statut'] == 'En retard']['montant'].sum(),
-        'taux_recouvrement': (factures_df[factures_df['statut'] == 'Payée']['montant'].sum() / 
-                            factures_df['montant'].sum() * 100) if len(factures_df) > 0 else 0
+        'montant_retard': format_montant(factures_df[factures_df['statut'] == 'En retard']['montant'].sum()),
+        'taux_recouvrement': f"{(factures_df[factures_df['statut'] == 'Payée']['montant'].sum() / factures_df['montant'].sum() * 100) if len(factures_df) > 0 else 0:.1f}%"
     }
     return stats
 
@@ -216,37 +223,122 @@ def index():
     
     # Graphiques
     if not factures_df.empty:
-        # Graphique des montants par statut
-        fig_status = px.pie(factures_df, values='montant', names='statut', 
+        # 1. Graphique des montants par statut (amélioré)
+        status_data = factures_df.groupby('statut').agg({
+            'montant': 'sum',
+            'id': 'count'
+        }).reset_index()
+        status_data['percentage'] = status_data['montant'] / status_data['montant'].sum() * 100
+        
+        fig_status = px.pie(status_data, 
+                          values='montant', 
+                          names='statut',
                           title='Répartition des montants par statut',
+                          color='statut',
                           color_discrete_map={
-                              'Payée': '#2E7D32',
-                              'En attente': '#FFA000',
-                              'En retard': '#D32F2F'
-                          })
-        fig_status.update_traces(textposition='inside', textinfo='percent+label')
+                              'Payée': '#198754',
+                              'En attente': '#ffc107',
+                              'En retard': '#dc3545',
+                              'Annulée': '#6c757d'
+                          },
+                          hover_data=['id'])
         
-        # Graphique d'évolution temporelle
-        monthly_amounts = factures_df.groupby([
-            factures_df['date_emission'].dt.strftime('%Y-%m'),
+        fig_status.update_traces(
+            texttemplate='%{label}<br>%{value:,.0f} CFA<br>(%{percent:.1f}%)',
+            textposition='inside'
+        )
+        fig_status.update_layout(
+            showlegend=True,
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+        )
+
+        # 2. Graphique d'évolution temporelle (amélioré)
+        monthly_stats = factures_df.groupby([
+            pd.Grouper(key='date_emission', freq='M'),
             'statut'
-        ])['montant'].sum().reset_index()
-        
-        fig_evolution = px.line(monthly_amounts, 
+        ]).agg({
+            'montant': 'sum',
+            'id': 'count'
+        }).reset_index()
+
+        fig_evolution = px.line(monthly_stats, 
                               x='date_emission', 
                               y='montant',
                               color='statut',
-                              title='Évolution des montants facturés',
+                              title='Évolution des montants facturés par mois',
                               color_discrete_map={
-                                  'Payée': '#2E7D32',
-                                  'En attente': '#FFA000',
-                                  'En retard': '#D32F2F'
-                              })
+                                  'Payée': '#198754',
+                                  'En attente': '#ffc107',
+                                  'En retard': '#dc3545',
+                                  'Annulée': '#6c757d'
+                              },
+                              markers=True)
         
+        fig_evolution.update_layout(
+            xaxis_title="Date",
+            yaxis_title="Montant (CFA)",
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            hovermode='x unified',
+            xaxis=dict(
+                dtick="M1",
+                tickformat="%B %Y"
+            )
+        )
+        fig_evolution.update_traces(
+            hovertemplate='%{y:,.0f} CFA<br>%{customdata[0]} factures'
+        )
+        
+        # 3. Nouveau graphique : Top clients
+        top_clients = pd.merge(
+            factures_df.groupby('client_id')['montant'].sum().reset_index(),
+            clients_df[['id', 'nom']],
+            left_on='client_id',
+            right_on='id'
+        ).nlargest(5, 'montant')
+
+        fig_top_clients = px.bar(top_clients,
+                               x='nom',
+                               y='montant',
+                               title='Top 5 des clients par montant facturé',
+                               color_discrete_sequence=['#0d6efd'])
+        
+        fig_top_clients.update_layout(
+            xaxis_title="Client",
+            yaxis_title="Montant total (CFA)",
+            showlegend=False
+        )
+        fig_top_clients.update_traces(
+            texttemplate='%{y:,.0f} CFA',
+            textposition='outside'
+        )
+
+        # 4. Nouveau graphique : Délais de paiement
+        factures_payees = factures_df[factures_df['statut'] == 'Payée'].copy()
+        if not factures_payees.empty:
+            factures_payees['delai_paiement'] = (factures_payees['date_echeance'] - factures_payees['date_emission']).dt.days
+            
+            fig_delais = px.histogram(factures_payees,
+                                    x='delai_paiement',
+                                    title='Distribution des délais de paiement',
+                                    color_discrete_sequence=['#0d6efd'],
+                                    nbins=20)
+            
+            fig_delais.update_layout(
+                xaxis_title="Délai de paiement (jours)",
+                yaxis_title="Nombre de factures",
+                showlegend=False
+            )
+        else:
+            fig_delais = px.histogram(pd.DataFrame({'delai_paiement': []}),
+                                    x='delai_paiement',
+                                    title='Distribution des délais de paiement')
+
         # Conversion des graphiques en JSON pour le frontend
         graphJSON = {
             'status': json.dumps(fig_status, cls=plotly.utils.PlotlyJSONEncoder),
-            'evolution': json.dumps(fig_evolution, cls=plotly.utils.PlotlyJSONEncoder)
+            'evolution': json.dumps(fig_evolution, cls=plotly.utils.PlotlyJSONEncoder),
+            'top_clients': json.dumps(fig_top_clients, cls=plotly.utils.PlotlyJSONEncoder),
+            'delais': json.dumps(fig_delais, cls=plotly.utils.PlotlyJSONEncoder)
         }
     else:
         graphJSON = None
@@ -281,6 +373,32 @@ def clients():
     # GET request
     clients_df = pd.read_csv('data/clients.csv')
     return jsonify(clients_df.to_dict('records'))
+
+@app.route('/clients/<client_id>', methods=['DELETE'])
+def delete_client(client_id):
+    try:
+        # Charger les données existantes
+        clients_df = pd.read_csv('data/clients.csv')
+        factures_df = pd.read_csv('data/factures.csv')
+        
+        # Vérifier si le client a des factures
+        if not factures_df[factures_df['client_id'] == int(client_id)].empty:
+            return jsonify({
+                'success': False,
+                'message': 'Impossible de supprimer ce client car il a des factures associées'
+            }), 400
+        
+        # Supprimer le client
+        clients_df = clients_df[clients_df['id'] != int(client_id)]
+        clients_df.to_csv('data/clients.csv', index=False)
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        print(f"Erreur lors de la suppression du client: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': 'Erreur lors de la suppression du client'
+        }), 500
 
 @app.route('/factures', methods=['GET', 'POST'])
 def factures():
@@ -324,22 +442,57 @@ def factures():
         
     return jsonify(result)
 
+@app.route('/factures/<facture_id>', methods=['DELETE'])
+def delete_facture(facture_id):
+    try:
+        # Charger les données existantes
+        factures_df = pd.read_csv('data/factures.csv')
+        
+        # Supprimer la facture
+        factures_df = factures_df[factures_df['id'] != int(facture_id)]
+        factures_df.to_csv('data/factures.csv', index=False)
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        print(f"Erreur lors de la suppression de la facture: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': 'Erreur lors de la suppression de la facture'
+        }), 500
+
 @app.route('/factures/<int:facture_id>/status', methods=['PUT'])
 def update_facture_status(facture_id):
-    data = request.json
-    new_status = data.get('status')
-    
-    if new_status not in ['En attente', 'Payée', 'En retard']:
-        return jsonify({'error': 'Statut invalide'}), 400
-    
-    factures_df = pd.read_csv('data/factures.csv')
-    if facture_id not in factures_df['id'].values:
-        return jsonify({'error': 'Facture non trouvée'}), 404
-    
-    factures_df.loc[factures_df['id'] == facture_id, 'statut'] = new_status
-    factures_df.to_csv('data/factures.csv', index=False)
-    
-    return jsonify({'message': 'Statut mis à jour avec succès'})
+    try:
+        data = request.json
+        new_status = data.get('status')
+        
+        if new_status not in ['En attente', 'Payée', 'En retard', 'Annulée']:
+            return jsonify({
+                'success': False,
+                'message': 'Statut invalide'
+            }), 400
+        
+        # Charger les données
+        factures_df = pd.read_csv('data/factures.csv')
+        
+        # Vérifier si la facture existe
+        if facture_id not in factures_df['id'].values:
+            return jsonify({
+                'success': False,
+                'message': 'Facture non trouvée'
+            }), 404
+        
+        # Mettre à jour le statut
+        factures_df.loc[factures_df['id'] == facture_id, 'statut'] = new_status
+        factures_df.to_csv('data/factures.csv', index=False)
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        print(f"Erreur lors de la mise à jour du statut: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': 'Erreur lors de la mise à jour du statut'
+        }), 500
 
 @app.route('/import/<type_data>', methods=['POST'])
 def import_data(type_data):
