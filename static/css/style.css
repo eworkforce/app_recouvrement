@@ -30,7 +30,7 @@ body {
 
 #sidebar .sidebar-header {
     padding: 20px;
-    background: #fff;
+    background: var(--primary-color);
     text-align: center;
 }
 
@@ -38,6 +38,7 @@ body {
     max-width: 100%;
     height: auto;
     margin: 0 auto;
+    max-height: 60px;
 }
 
 #sidebar ul.components {
