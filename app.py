@@ -34,13 +34,34 @@ def format_cfa(montant):
     return format_montant(montant)
 
 def calculate_statistics(factures_df):
+    # Calcul des montants par statut
+    montants_par_statut = factures_df.groupby('statut')['montant'].sum()
+    
+    # Montant total
+    montant_total = factures_df['montant'].sum()
+    
+    # Montants impayés (En attente + En retard)
+    montant_impaye = montants_par_statut.get('En attente', 0) + montants_par_statut.get('En retard', 0)
+    
+    # Montant en retard
+    montant_retard = montants_par_statut.get('En retard', 0)
+    
+    # Montant payé
+    montant_paye = montants_par_statut.get('Payée', 0)
+    
+    # Taux de recouvrement
+    taux_recouvrement = (montant_paye / montant_total * 100) if montant_total > 0 else 0
+    
+    # Nombre de factures en retard
+    nb_retard = len(factures_df[factures_df['statut'] == 'En retard'])
+
     stats = {
         'total_factures': len(factures_df),
-        'montant_total': format_montant(factures_df['montant'].sum()),
-        'montant_impaye': format_montant(factures_df[factures_df['statut'].isin(['En attente', 'En retard'])]['montant'].sum()),
-        'nb_retard': len(factures_df[factures_df['statut'] == 'En retard']),
-        'montant_retard': format_montant(factures_df[factures_df['statut'] == 'En retard']['montant'].sum()),
-        'taux_recouvrement': f"{(factures_df[factures_df['statut'] == 'Payée']['montant'].sum() / factures_df['montant'].sum() * 100) if len(factures_df) > 0 else 0:.1f}%"
+        'montant_total': format_montant(montant_total),
+        'montant_impaye': format_montant(montant_impaye),
+        'nb_retard': nb_retard,
+        'montant_retard': format_montant(montant_retard),
+        'taux_recouvrement': f"{taux_recouvrement:.1f}%"
     }
     return stats
 
@@ -228,25 +249,32 @@ def index():
             'montant': 'sum',
             'id': 'count'
         }).reset_index()
-        status_data['percentage'] = status_data['montant'] / status_data['montant'].sum() * 100
         
+        # Calcul explicite des pourcentages
+        total_montant = status_data['montant'].sum()
+        status_data['percentage'] = (status_data['montant'] / total_montant * 100).round(1)
+        
+        # Création du graphique avec les pourcentages précalculés
         fig_status = px.pie(status_data, 
                           values='montant', 
                           names='statut',
                           title='Répartition des montants par statut',
                           color='statut',
+                          custom_data=['percentage', 'id'],
                           color_discrete_map={
                               'Payée': '#198754',
                               'En attente': '#ffc107',
                               'En retard': '#dc3545',
                               'Annulée': '#6c757d'
-                          },
-                          hover_data=['id'])
+                          })
         
+        # Format personnalisé pour le texte
         fig_status.update_traces(
-            texttemplate='%{label}<br>%{value:,.0f} CFA<br>(%{percent:.1f}%)',
-            textposition='inside'
+            texttemplate='%{label}<br>%{value:,.0f} CFA<br>(%{customdata[0]:.1f}%)',
+            textposition='inside',
+            hovertemplate='%{label}<br>Montant: %{value:,.0f} CFA<br>Pourcentage: %{customdata[0]:.1f}%<br>Nombre de factures: %{customdata[1]}<extra></extra>'
         )
+        
         fig_status.update_layout(
             showlegend=True,
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
@@ -288,7 +316,7 @@ def index():
             hovertemplate='%{y:,.0f} CFA<br>%{customdata[0]} factures'
         )
         
-        # 3. Nouveau graphique : Top clients
+        # 3. Graphique Top clients
         top_clients = pd.merge(
             factures_df.groupby('client_id')['montant'].sum().reset_index(),
             clients_df[['id', 'nom']],
@@ -312,7 +340,7 @@ def index():
             textposition='outside'
         )
 
-        # 4. Nouveau graphique : Délais de paiement
+        # 4. Graphique Délais de paiement
         factures_payees = factures_df[factures_df['statut'] == 'Payée'].copy()
         if not factures_payees.empty:
             factures_payees['delai_paiement'] = (factures_payees['date_echeance'] - factures_payees['date_emission']).dt.days
@@ -343,10 +371,7 @@ def index():
     else:
         graphJSON = None
 
-    return render_template('index.html', 
-                         graphJSON=graphJSON, 
-                         stats=stats,
-                         clients=clients_df.to_dict('records'))
+    return render_template('index.html', stats=stats, graphJSON=graphJSON)
 
 @app.route('/clients', methods=['GET', 'POST'])
 def clients():
