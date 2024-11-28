@@ -48,84 +48,84 @@
 
         <!-- Page Content -->
         <div id="content">
-            <!-- Modal d'importation -->
-            <div class="modal fade" id="importModal" tabindex="-1">
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">Importer des données</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body">
-                            <ul class="nav nav-tabs mb-3">
-                                <li class="nav-item">
-                                    <a class="nav-link active" data-bs-toggle="tab" href="#importClients">Clients</a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" data-bs-toggle="tab" href="#importFactures">Factures</a>
-                                </li>
-                            </ul>
-                            
-                            <div class="tab-content">
-                                <div class="tab-pane fade show active" id="importClients">
-                                    <div class="alert alert-info">
-                                        <h6>Format attendu du fichier CSV :</h6>
-                                        <p class="mb-0">
-                                            <code>nom,email,telephone</code><br>
-                                            Exemple : <code>John Doe,john@example.com,0123456789</code>
-                                        </p>
-                                    </div>
-                                    <form id="importClientsForm" class="import-form" data-type="clients">
-                                        <div class="mb-3">
-                                            <label class="form-label">Fichier CSV</label>
-                                            <input type="file" class="form-control" accept=".csv" required>
+            <div class="container-fluid">
+                <h2 class="text-center mb-4 p-3" style="background-color: var(--primary-color); color: white;">Suivi du Recouvrement: Tableau de Bord</h2>
+                <!-- Modal d'importation -->
+                <div class="modal fade" id="importModal" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Importer des données</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <ul class="nav nav-tabs mb-3">
+                                    <li class="nav-item">
+                                        <a class="nav-link active" data-bs-toggle="tab" href="#importClients">Clients</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" data-bs-toggle="tab" href="#importFactures">Factures</a>
+                                    </li>
+                                </ul>
+                                
+                                <div class="tab-content">
+                                    <div class="tab-pane fade show active" id="importClients">
+                                        <div class="alert alert-info">
+                                            <h6>Format attendu du fichier CSV :</h6>
+                                            <p class="mb-0">
+                                                <code>nom,email,telephone</code><br>
+                                                Exemple : <code>John Doe,john@example.com,0123456789</code>
+                                            </p>
                                         </div>
-                                        <button type="submit" class="btn btn-success">
-                                            <i class="bi bi-upload"></i> Importer les clients
-                                        </button>
-                                    </form>
+                                        <form id="importClientsForm" class="import-form" data-type="clients">
+                                            <div class="mb-3">
+                                                <label class="form-label">Fichier CSV</label>
+                                                <input type="file" class="form-control" accept=".csv" required>
+                                            </div>
+                                            <button type="submit" class="btn btn-success">
+                                                <i class="bi bi-upload"></i> Importer les clients
+                                            </button>
+                                        </form>
+                                    </div>
+                                    
+                                    <div class="tab-pane fade" id="importFactures">
+                                        <div class="alert alert-info">
+                                            <h6>Format attendu du fichier CSV :</h6>
+                                            <p class="mb-0">
+                                                <code>numero,client_id,montant,date_emission,date_echeance</code><br>
+                                                Exemple : <code>FAC2024-001,1,1500.50,2024-01-15,2024-02-15</code>
+                                            </p>
+                                        </div>
+                                        <form id="importFacturesForm" class="import-form" data-type="factures">
+                                            <div class="mb-3">
+                                                <label class="form-label">Fichier CSV</label>
+                                                <input type="file" class="form-control" accept=".csv" required>
+                                            </div>
+                                            <button type="submit" class="btn btn-success">
+                                                <i class="bi bi-upload"></i> Importer les factures
+                                            </button>
+                                        </form>
+                                    </div>
                                 </div>
                                 
-                                <div class="tab-pane fade" id="importFactures">
-                                    <div class="alert alert-info">
-                                        <h6>Format attendu du fichier CSV :</h6>
-                                        <p class="mb-0">
-                                            <code>numero,client_id,montant,date_emission,date_echeance</code><br>
-                                            Exemple : <code>FAC2024-001,1,1500.50,2024-01-15,2024-02-15</code>
-                                        </p>
+                                <div id="importPreview" class="mt-4" style="display: none;">
+                                    <h6>Aperçu des données importées :</h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm">
+                                            <thead id="previewHeader"></thead>
+                                            <tbody id="previewBody"></tbody>
+                                        </table>
                                     </div>
-                                    <form id="importFacturesForm" class="import-form" data-type="factures">
-                                        <div class="mb-3">
-                                            <label class="form-label">Fichier CSV</label>
-                                            <input type="file" class="form-control" accept=".csv" required>
-                                        </div>
-                                        <button type="submit" class="btn btn-success">
-                                            <i class="bi bi-upload"></i> Importer les factures
-                                        </button>
-                                    </form>
                                 </div>
+                                
+                                <div id="importErrors" class="alert alert-danger mt-3" style="display: none;"></div>
                             </div>
-                            
-                            <div id="importPreview" class="mt-4" style="display: none;">
-                                <h6>Aperçu des données importées :</h6>
-                                <div class="table-responsive">
-                                    <table class="table table-sm">
-                                        <thead id="previewHeader"></thead>
-                                        <tbody id="previewBody"></tbody>
-                                    </table>
-                                </div>
-                            </div>
-                            
-                            <div id="importErrors" class="alert alert-danger mt-3" style="display: none;"></div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Dashboard Section -->
-            <section id="dashboard" class="active-section">
-                <div class="container-fluid">
-                    <h2 class="mb-4">Tableau de Bord</h2>
+                <!-- Dashboard Section -->
+                <section id="dashboard" class="active-section">
                     <div class="row mb-4">
                         <div class="col-md-3">
                             <div class="card text-white bg-primary mb-3">
