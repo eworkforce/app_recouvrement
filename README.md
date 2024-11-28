@@ -1,13 +1,15 @@
-# Application de Recouvrement - v0.1
+# EDNA Recouvrement - v0.1
 
-Application web de gestion des recouvrements permettant de suivre les factures clients et de générer des exports automatiques.
+Application de gestion des recouvrements et suivi des factures clients.
 
 ## Fonctionnalités
 
-- Tableau de bord avec visualisation des données
+- Tableau de bord interactif avec statistiques en temps réel
 - Gestion des clients
 - Gestion des factures
-- Exports automatiques (quotidien, hebdomadaire, mensuel)
+- Suivi des paiements
+- Visualisation des données avec graphiques
+- Export des données
 
 ## Prérequis
 
@@ -16,16 +18,20 @@ Application web de gestion des recouvrements permettant de suivre les factures c
 
 ## Installation
 
-1. Cloner le dépôt
-2. Créer un environnement virtuel :
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # Sur Linux/Mac
-   ```
-3. Installer les dépendances :
-   ```bash
-   pip install -r requirements.txt
-   ```
+1. Cloner le repository
+```bash
+git clone https://github.com/votre-repo/edna-recouvrement.git
+```
+
+2. Installer les dépendances
+```bash
+pip install -r requirements.txt
+```
+
+3. Lancer l'application
+```bash
+python app.py
+```
 
 ## Utilisation
 
@@ -42,7 +48,28 @@ Les données sont stockées dans des fichiers CSV dans le dossier `data/` :
 - `factures.csv` : Liste des factures
 - `export_config.json` : Configuration des exports automatiques
 
+## Technologies utilisées
+
+- Flask
+- Bootstrap 5
+- Plotly
+- Pandas
+- SQLite (à venir)
+
 ## Développement
 
 Version actuelle : 0.1
 Voir `VERSION.md` pour l'historique des versions.
+
+## Contribution
+
+Pour contribuer au projet :
+1. Forker le projet
+2. Créer une branche pour votre fonctionnalité
+3. Commiter vos changements
+4. Pousser vers la branche
+5. Ouvrir une Pull Request
+
+## Licence
+
+Ce projet est sous licence MIT.
