@@ -30,7 +30,14 @@ body {
 
 #sidebar .sidebar-header {
     padding: 20px;
-    background: var(--secondary-color);
+    background: #fff;
+    text-align: center;
+}
+
+#sidebar .sidebar-header img {
+    max-width: 100%;
+    height: auto;
+    margin: 0 auto;
 }
 
 #sidebar ul.components {
